@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Serviço do banco de dados PostgreSQL
+  db:
+    image: postgres:15
+    container_name: tarefas-db
+    environment:
+      POSTGRES_DB: tarefasdb
+      POSTGRES_USER: samuel
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U samuel -d tarefasdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Serviço da sua API Spring Boot
+  app:
+    build: . # Constrói a imagem a partir do Dockerfile na pasta atual
+    container_name: tarefas-api
+    depends_on:
+      db:
+        condition: service_healthy # Garante que a 'app' só inicie após o 'db' estar saudável
+    ports:
+      - "8080:8080"
+    environment:
+      # Variável para sobrescrever a configuração de CORS para o ambiente local
+      APP_CORS_ALLOWED-ORIGINS: http://localhost:3000,http://localhost:4200
+      # Suas variáveis de banco de dados existentes
+      DB_URL: jdbc:postgresql://db:5432/tarefasdb # 'db' é o nome do serviço do banco de dados
+      DB_USERNAME: samuel
+      DB_PASSWORD: password
+
+volumes:
+  postgres_data:

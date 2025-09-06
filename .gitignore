@@ -1,0 +1,51 @@
+# Compiled output
+HELP.md
+target/
+build/
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Ignore archives
+*.jar
+*.war
+*.ear
+
+# Exceptions for Maven multi-module projects
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache
+.apt_generated
+.factorypath
+
+### Logs ###
+logs
+*.log
+
+### OS generated files ###
+.DS_Store
+Thumbs.db
