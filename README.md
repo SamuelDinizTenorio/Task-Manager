@@ -65,6 +65,8 @@ Este projeto é configurado para ser executado facilmente com Docker. Siga os pa
 ### Pré-requisitos
 
 - [Docker](https://www.docker.com/get-started/) e [Docker Compose](https://docs.docker.com/compose/install/) instalados.
+- [Java 21](https://www.oracle.com/java/technologies/downloads/#java21) (opcional, para desenvolvimento fora do Docker).
+- [Maven](https://maven.apache.org/download.cgi) (opcional, para desenvolvimento fora do Docker).
 
 ### 1. Clone o Repositório
 
