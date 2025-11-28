@@ -1,6 +1,6 @@
 # Sistema de Gerenciamento de Tarefas
 
-![Java CI Pipeline](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/pipeline.yml/badge.svg)
+![Java CI Pipeline](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/ci.yml/badge.svg)
 ![CodeQL](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/codeql-analysis.yml/badge.svg)
 
 Este é o backend de uma API REST para um Sistema de Gerenciamento de Tarefas, construído com Spring Boot. A aplicação permite que os usuários se registrem, façam login, gerenciem suas tarefas e, para usuários administradores, gerenciem outros usuários.
