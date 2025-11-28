@@ -10,6 +10,14 @@ on:
     branches:
       - main
 
+# Concede as permissões necessárias para o job.
+# O CodeQL precisa de permissão para escrever os resultados na aba "Security".
+permissions:
+  contents: read # Necessário para a action de checkout.
+  security-events: write # Necessário para a action do CodeQL.
+  checks: write # Opcional, mas bom para relatar status.
+  actions: read # Opcional, para ler informações sobre outras actions.
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -29,7 +37,7 @@ jobs:
 
       # 3. Inicializa o CodeQL para análise de segurança.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java
 
@@ -51,4 +59,4 @@ jobs:
 
       # 6. Finaliza a análise do CodeQL.
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
