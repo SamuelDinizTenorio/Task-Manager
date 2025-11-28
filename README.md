@@ -1,6 +1,6 @@
 # Sistema de Gerenciamento de Tarefas
 
-[![Build, Test & Scan](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/<SEU_USUARIO>/<SEU_REPOSITORIO>/actions)
+[![Build, Test & Scan](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelDinizTenorio/Task-Manager/actions)
 
 Este é o backend de uma API REST para um Sistema de Gerenciamento de Tarefas, construído com Spring Boot. A aplicação permite que os usuários se registrem, façam login, gerenciem suas tarefas e, para usuários administradores, gerenciem outros usuários.
 
