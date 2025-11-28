@@ -1,180 +1,171 @@
 # Sistema de Gerenciamento de Tarefas
 
-API REST para um sistema simples de gerenciamento de tarefas, desenvolvida com Spring Boot. O projeto permite criar, listar, atualizar, deletar e marcar tarefas como concluídas.
+![Java CI Pipeline](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/pipeline.yml/badge.svg)
+![CodeQL](https://github.com/SamuelDinizTenorio/Task-Manager/actions/workflows/codeql-analysis.yml/badge.svg)
 
-## ✨ Funcionalidades
+Este é o backend de uma API REST para um Sistema de Gerenciamento de Tarefas, construído com Spring Boot. A aplicação permite que os usuários se registrem, façam login, gerenciem suas tarefas e, para usuários administradores, gerenciem outros usuários.
 
-- **CRUD completo de Tarefas**: Crie, Leia, Atualize e Delete tarefas.
-- **Conclusão de Tarefas**: Endpoint específico para marcar uma tarefa como concluída.
-- **Paginação e Ordenação**: A listagem de tarefas suporta paginação e ordenação para lidar com grandes volumes de dados.
-- **Validação de Dados**: Validação robusta dos dados de entrada para garantir a integridade.
-- **Tratamento de Exceções**: Respostas de erro padronizadas e claras.
-- **Logging**: Logs detalhados para monitoramento e depuração das operações da API.
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Java 21**: Versão mais recente da linguagem Java.
-- **Spring Boot 3**: Framework principal para a construção da aplicação.
-- **Spring Data JPA**: Para persistência de dados de forma simplificada.
-- **PostgreSQL**: Banco de dados relacional utilizado no projeto.
-- **Flyway**: Ferramenta para versionamento e migração de schema do banco de dados.
-- **Maven**: Gerenciador de dependências e build do projeto.
-- **Docker**: Para containerização da aplicação e do banco de dados.
-- **Lombok**: Para reduzir código boilerplate (getters, setters, construtores, etc.).
+O projeto é totalmente containerizado com Docker para facilitar a configuração e execução do ambiente de desenvolvimento.
 
 ---
 
-## 🚀 Como Executar com Docker (Recomendado)
+## ✨ Principais Funcionalidades
 
-A forma mais simples de executar o projeto é utilizando Docker e Docker Compose. Isso irá configurar e iniciar tanto a API quanto o banco de dados PostgreSQL automaticamente.
+- **Autenticação e Autorização:** Sistema completo de autenticação baseado em JWT (JSON Web Tokens).
+- **Gerenciamento de Usuários:**
+  - Registro e Login de usuários.
+  - CRUD completo de usuários (disponível para administradores).
+  - Atualização de perfil pelo próprio usuário.
+  - Sistema de papéis (roles): `USER` e `ADMIN`.
+- **Gerenciamento de Tarefas:**
+  - CRUD completo de tarefas.
+  - Atribuição de tarefas a usuários.
+  - Marcação de tarefas como concluídas.
+- **Segurança:**
+  - Senhas criptografadas com BCrypt.
+  - Endpoints protegidos com base no papel do usuário.
+  - Validação de entrada de dados.
+- **DevOps:**
+  - **Containerização:** Configuração completa com `Dockerfile` e `docker-compose.yml` para um ambiente de desenvolvimento fácil de replicar.
+  - **CI/CD:** Pipeline automatizada com GitHub Actions que executa testes e análise de segurança (CodeQL) a cada push e pull request.
+- **Testes:** Cobertura de testes robusta, incluindo testes unitários, de integração e da camada de persistência.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Backend:**
+  - Java 21
+  - Spring Boot 3
+  - Spring Web
+  - Spring Security
+  - Spring Data JPA
+  - Spring Boot Actuator (para Health Checks)
+- **Banco de Dados:**
+  - PostgreSQL
+  - Flyway (para migrações de banco de dados)
+- **Testes:**
+  - JUnit 5
+  - Mockito
+  - Spring Test
+- **Autenticação:**
+  - JSON Web Token (JWT)
+- **DevOps:**
+  - Docker & Docker Compose
+  - GitHub Actions (CI/CD)
+  - Maven (gerenciador de dependências)
+- **Outros:**
+  - Lombok
+
+---
+
+## 🚀 Como Executar (Ambiente de Desenvolvimento)
+
+Este projeto é configurado para ser executado facilmente com Docker. Siga os passos abaixo.
 
 ### Pré-requisitos
 
-- **Docker**
-- **Docker Compose**
+- [Docker](https://www.docker.com/get-started/) e [Docker Compose](https://docs.docker.com/compose/install/) instalados.
+- [Java 21](https://www.oracle.com/java/technologies/downloads/#java21) (opcional, para desenvolvimento fora do Docker).
+- [Maven](https://maven.apache.org/download.cgi) (opcional, para desenvolvimento fora do Docker).
 
 ### 1. Clone o Repositório
 
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
+git clone <url-do-seu-repositorio>
 cd sistema-gerenciamento-tarefas
 ```
 
-### 2. Execute com Docker Compose
+### 2. Crie o Arquivo de Ambiente (`.env`)
 
-Na raiz do projeto, execute o seguinte comando:
+Na raiz do projeto, crie um arquivo chamado `.env`. Este arquivo conterá as variáveis de ambiente e segredos para o seu ambiente de desenvolvimento.
+
+> **Importante:** O arquivo `.env` está listado no `.gitignore` e **nunca** deve ser comitado no seu repositório Git.
+
+Copie o conteúdo abaixo para o seu arquivo `.env`, e acrescente valores seguros:
+
+```env
+# =================================================
+# =             ENVIRONMENT VARIABLES             =
+# =================================================
+# Este arquivo NUNCA deve ser comitado no Git.
+# Ele contém os segredos para o ambiente de desenvolvimento.
+# Para produção, use valores fortes e únicos.
+
+# --- Banco de Dados ---
+DB_NAME=tarefasdb
+DB_USER=user
+DB_PASSWORD=password
+
+# --- Aplicação ---
+ADMIN_DEFAULT_PASSWORD=password
+JWT_SECRET_KEY=my-super-secret-and-long-key-for-jwt-that-is-at-least-256-bits
+FRONTEND_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4200
+```
+
+### 3. Inicie a Aplicação com Docker Compose
+
+Com o Docker Desktop em execução, rode o seguinte comando na raiz do projeto:
 
 ```bash
 docker-compose up -d --build
 ```
 
-A API estará disponível em `http://localhost:8080`.
+- `up`: Inicia os containers.
+- `-d`: "Detached mode", roda os containers em segundo plano.
+- `--build`: Força a reconstrução da imagem da sua API, garantindo que as últimas alterações do código sejam incluídas.
 
-### 3. Para Parar a Execução
+A primeira execução pode demorar alguns minutos, pois o Docker irá baixar as imagens base e construir a imagem da sua aplicação.
 
-Para parar e remover os contêineres, redes e volumes, utilize:
+### 4. Verifique se Tudo Está Rodando
 
-```bash
-docker-compose down
-```
-
----
-
-## 🔧 Como Executar Manualmente
-
-### Pré-requisitos
-
-- **JDK 21** ou superior.
-- **Maven 3.8** ou superior.
-- Uma instância do **PostgreSQL** em execução.
-
-### 1. Configure o Banco de Dados
-
-1. Crie um banco de dados no seu PostgreSQL (ex: `tarefas_db`).
-2. Configure as variáveis de ambiente que são lidas pelo arquivo `application.properties`. O Spring Boot as utilizará para se conectar ao banco.
-
-   **Exemplo para Linux/macOS:**
-   ```bash
-   export DB_URL=jdbc:postgresql://localhost:5432/tarefas_db
-   export DB_USERNAME=seu_usuario_postgres
-   export DB_PASSWORD=sua_senha_postgres
-   ```
-
-   **Exemplo para Windows (PowerShell):**
-   ```powershell
-   $env:DB_URL="jdbc:postgresql://localhost:5432/tarefas_db"
-   $env:DB_USERNAME="seu_usuario_postgres"
-   $env:DB_PASSWORD="sua_senha_postgres"
-   ```
-
-   > O Flyway criará automaticamente as tabelas necessárias na primeira vez que a aplicação for iniciada.
-
-### 2. Execute a Aplicação
-
-Utilize o Maven para iniciar o servidor Spring Boot.
+Para verificar o status dos seus containers, use:
 
 ```bash
-mvn spring-boot:run
+docker-compose ps
 ```
+
+Você deve ver dois serviços, `tarefas-db` e `tarefas-api`, com o status `running` ou `Up`.
 
 A API estará disponível em `http://localhost:8080`.
 
 ---
 
-## 📖 Endpoints da API
+## 🧪 Como Executar os Testes
 
-A URL base para todos os endpoints é `/tasks`.
+Para rodar a suíte completa de testes (unitários e de integração) localmente, use o seguinte comando do Maven:
 
-### Listar todas as tarefas (com paginação)
-- **Método**: `GET`
-- **Path**: `/tasks`
-- **Query Params (Opcionais)**:
-  - `page`: Número da página (padrão: 0).
-  - `size`: Quantidade de itens por página (padrão: 10).
-  - `sort`: Campo para ordenação (ex: `sort=creationDate,desc`).
-- **Resposta de Sucesso (200 OK)**:
-  ```json
-  {
-    "content": [
-      {
-        "id": 1,
-        "title": "Configurar ambiente de desenvolvimento",
-        "description": "Instalar Java 21 e Maven",
-        "createdAt": "2024-10-27T10:00:00",
-        "completed": true
-      }
-    ],
-    "pageable": { ... },
-    "totalElements": 1,
-    ...
-  }
-  ```
+```bash
+mvn test
+```
 
-### Buscar tarefa por ID
-- **Método**: `GET`
-- **Path**: `/tasks/{id}`
-- **Resposta de Sucesso (200 OK)**:
-  ```json
-  {
-    "id": 1,
-    "title": "Configurar ambiente de desenvolvimento",
-    "description": "Instalar Java 21 e Maven",
-    "createdAt": "2024-10-27T10:00:00",
-    "completed": true
-  }
-  ```
+Os testes também são executados automaticamente a cada push e pull request para a branch `main` através da pipeline de CI/CD no GitHub Actions.
 
-### Criar uma nova tarefa
-- **Método**: `POST`
-- **Path**: `/tasks`
-- **Corpo da Requisição**:
-  ```json
-  {
-    "title": "Estudar Spring Boot",
-    "description": "Ler a documentação sobre REST controllers."
-  }
-  ```
-- **Resposta de Sucesso (201 Created)**: Retorna o objeto da tarefa criada com o header `Location` apontando para o novo recurso.
+---
 
-### Atualizar uma tarefa
-- **Método**: `PUT`
-- **Path**: `/tasks/{id}`
-- **Corpo da Requisição**:
-  ```json
-  {
-    "title": "Estudar Spring Security",
-    "description": "Focar em autenticação JWT.",
-    "completed": false
-  }
-  ```
-- **Resposta de Sucesso (200 OK)**: Retorna o objeto da tarefa atualizada.
+## 🗺️ Visão Geral dos Endpoints da API
 
-### Deletar uma tarefa
-- **Método**: `DELETE`
-- **Path**: `/tasks/{id}`
-- **Resposta de Sucesso (204 No Content)**: Corpo da resposta vazio.
+A seguir, uma lista dos principais endpoints disponíveis.
 
-### Marcar uma tarefa como concluída
-- **Método**: `PATCH`
-- **Path**: `/tasks/{id}/conclude`
-- **Resposta de Sucesso (200 OK)**: Retorna o objeto da tarefa atualizada com o campo `completed` como `true`.
+### Autenticação
+
+- `POST /auth/login`: Autentica um usuário e retorna um token JWT.
+- `POST /auth/register`: Registra um novo usuário com a role `USER`.
+
+### Tarefas (`/tasks`)
+
+- `GET /tasks`: Lista todas as tarefas de forma paginada.
+- `GET /tasks/{id}`: Busca uma tarefa pelo ID.
+- `POST /tasks`: Cria uma nova tarefa.
+- `PUT /tasks/{id}`: Atualiza uma tarefa existente.
+- `DELETE /tasks/{id}`: Deleta uma tarefa.
+- `PATCH /tasks/{id}/conclude`: Marca uma tarefa como concluída.
+
+### Usuários (`/users`)
+
+- `GET /users`: (Admin) Lista todos os usuários de forma paginada.
+- `GET /users/me`: Retorna os dados do usuário atualmente autenticado.
+- `GET /users/{id}`: (Admin) Busca um usuário pelo ID.
+- `PATCH /users/{id}`: Atualiza o perfil de um usuário (login/senha). Um usuário pode atualizar seu próprio perfil, e um admin pode atualizar qualquer perfil.
+- `PATCH /users/{id}/role`: (Admin) Atualiza a role de um usuário.
+- `DELETE /users/{id}`: (Admin) Deleta um usuário.

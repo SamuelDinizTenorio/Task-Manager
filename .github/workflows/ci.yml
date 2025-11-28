@@ -1,0 +1,57 @@
+# Nome do workflow que aparecerá na aba "Actions" do GitHub.
+name: CI - Build, Test and Security Analysis
+
+# Define os gatilhos (triggers) que iniciam o workflow.
+# O foco principal é rodar em Pull Requests para a branch 'main'.
+on:
+  # Roda quando um push é feito para a branch 'main'.
+  push:
+    branches: [ "main" ]
+  # Roda quando um Pull Request é aberto (ou atualizado) para a branch 'main'.
+  pull_request:
+    branches: [ "main" ]
+
+# Define os "trabalhos" (jobs) que serão executados.
+jobs:
+  # Um único job chamado 'build-and-test'.
+  build-and-test:
+    # O tipo de máquina virtual que será usada para rodar o job.
+    runs-on: ubuntu-latest
+
+    # Os passos que serão executados sequencialmente.
+    steps:
+      # 1. Baixa o seu código do repositório para a máquina virtual.
+      # A action 'actions/checkout@v4' é a maneira padrão de fazer isso.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente Java com a versão correta (JDK 21).
+      # A action 'actions/setup-java@v4' cuida de baixar e configurar o JDK.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin' # 'Temurin' é uma distribuição popular e confiável do OpenJDK.
+          cache: 'maven' # Habilita o cache de dependências do Maven para builds mais rápidos.
+
+      # 3. Inicializa o CodeQL para análise de segurança.
+      # Ele observa o processo de build para entender o código.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+
+      # 4. Executa os testes usando o Maven.
+      # Se qualquer teste falhar, a pipeline para aqui.
+      - name: Run tests with Maven
+        run: mvn -B test
+
+      # 5. Constrói o projeto (cria o .jar) se os testes passarem.
+      # A flag -DskipTests é crucial para não rodar os testes duas vezes.
+      - name: Build project with Maven
+        run: mvn -B package -DskipTests
+
+      # 6. Finaliza a análise do CodeQL.
+      # Ele analisa a base de código construída e envia os resultados para o GitHub.
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

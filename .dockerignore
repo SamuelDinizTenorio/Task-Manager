@@ -1,0 +1,39 @@
+# Ignorar arquivos e pastas do Git
+.git
+.gitignore
+
+# Ignorar arquivos de configuração do Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Ignorar arquivos gerados pelo Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Ignorar arquivos de IDE (IntelliJ IDEA)
+.idea
+*.iws
+*.iml
+*.ipr
+
+# Ignorar arquivos de log
+logs/
+*.log
+
+# Ignorar arquivos de ambiente - NUNCA incluir segredos na imagem
+.env
+
+# Ignorar arquivos do Maven Wrapper (o build usará a imagem do Maven)
+.mvn/
+mvnw
+mvnw.cmd
+
+# Ignorar documentação
+README.md

@@ -1,51 +1,47 @@
-# Compiled output
-HELP.md
+# Arquivos de ambiente - NUNCA comitar este arquivo!
+.env
+
+# Arquivos gerados pelo Maven
 target/
-build/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 
-# Maven Wrapper
-.mvn/wrapper/maven-wrapper.jar
-
-# Ignore archives
+# Arquivos de Build/Compilação
+*.class
 *.jar
 *.war
-*.ear
+bin/
 
-# Exceptions for Maven multi-module projects
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### IntelliJ IDEA ###
+# Arquivos gerados pelo IntelliJ IDEA
 .idea
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
-nbproject/private/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# Arquivos gerados pelo VS Code
 .vscode/
 
-### Eclipse ###
-.classpath
+# Arquivos gerados pelo Eclipse
 .project
+.classpath
 .settings/
-.springBeans
-.sts4-cache
-.apt_generated
-.factorypath
 
-### Logs ###
-logs
+# Arquivos de Log
+logs/
 *.log
+hs_err_pid*.log # Logs de falha da JVM
 
-### OS generated files ###
+# Arquivos Temporários e de Backup de Editores
+*.bak
+*.tmp
+*.swp
+*~
+
+# Outros
 .DS_Store
-Thumbs.db
+HELP.md

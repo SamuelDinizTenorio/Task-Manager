@@ -1,40 +1,52 @@
-version: '3.8'
-
 services:
   # Serviço do banco de dados PostgreSQL
   db:
     image: postgres:15
     container_name: tarefas-db
+    restart: unless-stopped # Política de reinicialização para maior resiliência
     environment:
-      POSTGRES_DB: tarefasdb
-      POSTGRES_USER: samuel
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U samuel -d tarefasdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # Serviço da sua API Spring Boot
   app:
-    build: . # Constrói a imagem a partir do Dockerfile na pasta atual
+    build: .
     container_name: tarefas-api
+    restart: unless-stopped # Política de reinicialização para maior resiliência
     depends_on:
       db:
-        condition: service_healthy # Garante que a 'app' só inicie após o 'db' estar saudável
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      # Variável para sobrescrever a configuração de CORS para o ambiente local
-      APP_CORS_ALLOWED-ORIGINS: http://localhost:3000,http://localhost:4200
-      # Suas variáveis de banco de dados existentes
-      DB_URL: jdbc:postgresql://db:5432/tarefasdb # 'db' é o nome do serviço do banco de dados
-      DB_USERNAME: samuel
-      DB_PASSWORD: password
+      # Variáveis de ambiente lidas pelo application.properties
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+      FRONTEND_URL: ${FRONTEND_ALLOWED_ORIGINS}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    deploy: # Seção para definir limites de recursos (essencial para produção)
+      resources:
+        limits:
+          cpus: '1.0' # Limita o uso a 1 núcleo de CPU
+          memory: 1G  # Limita o uso a 1 Gigabyte de RAM
+    healthcheck: # Healthcheck para a aplicação Spring Boot
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s # Verifica a cada 30 segundos
+      timeout: 10s  # Tempo máximo para a resposta
+      retries: 3    # Tenta 3 vezes antes de marcar como 'unhealthy'
+      start_period: 60s # Período de carência inicial para a aplicação iniciar
 
 volumes:
-  postgres_data:
+  postgres_data: # Define o volume nomeado para persistir os dados do banco

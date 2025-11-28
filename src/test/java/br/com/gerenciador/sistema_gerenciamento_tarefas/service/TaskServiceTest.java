@@ -1,237 +1,444 @@
 package br.com.gerenciador.sistema_gerenciamento_tarefas.service;
 
-import br.com.gerenciador.sistema_gerenciamento_tarefas.domain.Task;
-import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.TaskCreateDTO;
-import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.TaskResponseDTO;
-import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.TaskUpdateDTO;
+import br.com.gerenciador.sistema_gerenciamento_tarefas.domain.task.Task;
+import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.task.TaskCreateDTO;
+import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.task.TaskResponseDTO;
+import br.com.gerenciador.sistema_gerenciamento_tarefas.dto.task.TaskUpdateDTO;
+import br.com.gerenciador.sistema_gerenciamento_tarefas.infra.exception.TaskNotFoundException;
 import br.com.gerenciador.sistema_gerenciamento_tarefas.repository.TaskRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testes unitários para a classe {@link TaskService}.
+ * Foco: Testar a lógica de negócio de gerenciamento de tarefas em isolamento.
+ */
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
-
-    @InjectMocks
-    private TaskService taskService;
 
     @Mock
     private TaskRepository taskRepository;
 
+    @InjectMocks
+    private TaskService taskService;
+
+    // --- Testes para o método listAllTasks ---
+
     @Test
-    @DisplayName("Deve retornar uma tarefa quando o ID for válido")
-    void getTaskById_shouldReturnTask_whenIdIsValid() {
-        // Cenário
-        var task = setupIncompleteTaskFound(1L);
+    @DisplayName("listAllTasks should return a page of tasks")
+    void listAllTasks_shouldReturnPageOfTasks() {
+        // Arrange
+        var task = new Task(1L, "Test Task", "Description", LocalDateTime.now(), false);
+        Page<Task> taskPage = new PageImpl<>(List.of(task));
+        Pageable pageable = PageRequest.of(0, 10);
 
-        // Execução
-        TaskResponseDTO result = taskService.getTaskById(1L);
+        when(taskRepository.findAll(pageable)).thenReturn(taskPage);
 
-        // Verificação
+        // Act
+        Page<TaskResponseDTO> result = taskService.listAllTasks(pageable);
+
+        // Assert
         assertNotNull(result);
-        assertEquals(1L, result.id());
-        assertEquals(task.getTitle(), result.title());
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Test Task", result.getContent().get(0).title());
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando o ID não for encontrado")
-    void getTaskById_shouldThrowException_whenIdNotFound() {
-        // Cenário
-        when(taskRepository.findById(anyLong())).thenReturn(Optional.empty());
+    @DisplayName("listAllTasks should return an empty page when no tasks exist")
+    void listAllTasks_shouldReturnEmptyPage_whenNoTasksExist() {
+        // Arrange
+        Page<Task> emptyPage = Page.empty();
+        Pageable pageable = PageRequest.of(0, 10);
 
-        // Execução e Verificação
-        assertThrows(EntityNotFoundException.class, () -> taskService.getTaskById(99L));
-        verify(taskRepository, times(1)).findById(99L);
+        when(taskRepository.findAll(pageable)).thenReturn(emptyPage);
+
+        // Act
+        Page<TaskResponseDTO> result = taskService.listAllTasks(pageable);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    @DisplayName("Deve criar uma nova tarefa quando os dados forem válidos")
-    void createTask_shouldSaveTask_whenDataIsValid() {
-        // Cenário
-        var taskCreateDTO = new TaskCreateDTO("Estudar Spring", "Revisar testes");
+    @DisplayName("listAllTasks should propagate exceptions from the repository")
+    void listAllTasks_shouldPropagateRepositoryExceptions() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 10);
+        String errorMessage = "Database connection failed";
+        when(taskRepository.findAll(pageable)).thenThrow(new RuntimeException(errorMessage));
 
-        // Simula o comportamento do repositório: recebe uma Task sem ID e a retorna com um ID gerado.
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
-            Task taskToSave = invocation.getArgument(0);
-            // Simula a geração de ID pelo banco de dados
-            return new Task(1L, taskToSave.getTitle(), taskToSave.getDescription(), taskToSave.getCreationDate(), taskToSave.getCompleted());
+        // Act & Assert
+        var exception = assertThrows(RuntimeException.class, () -> {
+            taskService.listAllTasks(pageable);
+        });
+        assertEquals(errorMessage, exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("listAllTasks should throw IllegalArgumentException when pageable is null")
+    void listAllTasks_shouldThrowException_whenPageableIsNull() {
+        // Arrange, Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.listAllTasks(null);
         });
 
-        // Execução
-        TaskResponseDTO result = taskService.createTask(taskCreateDTO);
+        assertEquals("Pageable object cannot be null.", exception.getMessage());
+    }
 
-        // Verificação
+    // --- Testes para o método getTaskById ---
+
+    @Test
+    @DisplayName("getTaskById should return a task when ID exists")
+    void getTaskById_shouldReturnTask_whenIdExists() {
+        // Arrange
+        long taskId = 1L;
+        var task = new Task(taskId, "Test Task", "Description", LocalDateTime.now(), false);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+
+        // Act
+        TaskResponseDTO result = taskService.getTaskById(taskId);
+
+        // Assert
         assertNotNull(result);
-        assertEquals(1L, result.id(), "O ID da tarefa criada deve ser 1L");
-        assertEquals(taskCreateDTO.title(), result.title(), "O título deve corresponder ao DTO de entrada");
-        assertEquals(taskCreateDTO.description(), result.description(), "A descrição deve corresponder ao DTO de entrada");
-        assertNotNull(result.creationDate(), "A data de criação deve ser preenchida");
-        assertFalse(result.completed(), "A tarefa deve ser criada como não concluída");
-
-        verify(taskRepository, times(1)).save(any(Task.class));
+        assertEquals("Test Task", result.title());
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao criar tarefa quando o repositório falhar")
-    void createTask_shouldThrowException_whenRepositoryFails() {
-        // Cenário
-        var taskCreateDTO = new TaskCreateDTO("Tarefa com erro", "Descrição que vai falhar");
+    @DisplayName("getTaskById should throw TaskNotFoundException when ID does not exist")
+    void getTaskById_shouldThrowException_whenIdDoesNotExist() {
+        // Arrange
+        long nonExistentId = 99L;
+        when(taskRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // Simula uma falha no banco de dados durante a operação de salvar
-        when(taskRepository.save(any(Task.class))).thenThrow(new RuntimeException("Simulated database error"));
+        // Act & Assert
+        var exception = assertThrows(TaskNotFoundException.class, () -> {
+            taskService.getTaskById(nonExistentId);
+        });
 
-        // Execução e Verificação
+        assertEquals("Task not found with ID: " + nonExistentId, exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("getTaskById should throw IllegalArgumentException when ID is null")
+    void getTaskById_shouldThrowException_whenIdIsNull() {
+        // Arrange, Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.getTaskById(null);
+        });
+
+        assertEquals("Task ID cannot be null.", exception.getMessage());
+    }
+
+    // --- Testes para o método createTask ---
+
+    @Test
+    @DisplayName("createTask should save and return a new task")
+    void createTask_shouldSaveAndReturnNewTask() {
+        // Arrange
+        var createDTO = new TaskCreateDTO("New Task", "New Description");
+        var savedTask = new Task(1L, createDTO.title(), createDTO.description(), LocalDateTime.now(), false);
+
+        when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+
+        // Act
+        TaskResponseDTO result = taskService.createTask(createDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(createDTO.title(), result.title());
+        assertEquals(createDTO.description(), result.description());
+        assertFalse(result.completed());
+
+        ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
+        verify(taskRepository, times(1)).save(taskCaptor.capture());
+        Task capturedTask = taskCaptor.getValue();
+
+        assertEquals(createDTO.title(), capturedTask.getTitle());
+        assertEquals(createDTO.description(), capturedTask.getDescription());
+        assertFalse(capturedTask.getCompleted());
+        assertNotNull(capturedTask.getCreationDate());
+    }
+
+    @Test
+    @DisplayName("createTask should throw IllegalArgumentException when DTO is null")
+    void createTask_shouldThrowException_whenDtoIsNull() {
+        // Arrange, Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.createTask(null);
+        });
+
+        assertEquals("TaskCreateDTO cannot be null.", exception.getMessage());
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("createTask should propagate exceptions from the repository")
+    void createTask_shouldPropagateRepositoryExceptions() {
+        // Arrange
+        var createDTO = new TaskCreateDTO("New Task", "New Description");
+        String errorMessage = "Database save failed";
+        when(taskRepository.save(any(Task.class))).thenThrow(new RuntimeException(errorMessage));
+
+        // Act & Assert
         var exception = assertThrows(RuntimeException.class, () -> {
-            taskService.createTask(taskCreateDTO);
-        }, "Deveria ter lançado uma RuntimeException");
-
-        // Verifica se a mensagem da exceção é a esperada
-        assertEquals("Simulated database error", exception.getMessage());
-        verify(taskRepository, times(1)).save(any(Task.class));
+            taskService.createTask(createDTO);
+        });
+        assertEquals(errorMessage, exception.getMessage());
     }
-    
+
+    // --- Testes para o método updateTask ---
+
     @Test
-    @DisplayName("Deve atualizar todos os campos da tarefa quando os dados forem válidos")
-    void updateTask_shouldUpdateAllFields_whenDataIsValid() {
-        // Cenário
-        var existingTask = setupIncompleteTaskFound(1L);
-        var updateData = new TaskUpdateDTO("Título Novo", "Descrição Nova", true);
+    @DisplayName("updateTask should update and return the task when data is valid")
+    void updateTask_shouldUpdateAndReturnTask_whenDataIsValid() {
+        // Arrange
+        long taskId = 1L;
+        var existingTask = new Task(taskId, "Old Title", "Old Description", LocalDateTime.now(), false);
+        var updateDTO = new TaskUpdateDTO("New Title", "New Description", true);
 
-        // Execução
-        TaskResponseDTO result = taskService.updateTask(1L, updateData);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
 
-        // Verificação
+        // Act
+        TaskResponseDTO result = taskService.updateTask(taskId, updateDTO);
+
+        // Assert
         assertNotNull(result);
-        assertEquals(1L, result.id());
-        assertEquals("Título Novo", result.title(), "O título deveria ter sido atualizado.");
-        assertEquals("Descrição Nova", result.description(), "A descrição deveria ter sido atualizada.");
-        assertTrue(result.completed(), "O status de conclusão deveria ter sido atualizado.");
+        assertEquals(updateDTO.title(), result.title());
+        assertEquals(updateDTO.description(), result.description());
+        assertEquals(updateDTO.completed(), result.completed());
 
-        verify(taskRepository, times(1)).findById(1L);
+        // Verifica se o estado do objeto foi alterado
+        assertEquals("New Title", existingTask.getTitle());
+        assertEquals("New Description", existingTask.getDescription());
+        assertTrue(existingTask.getCompleted());
+        verify(taskRepository, never()).save(any(Task.class)); // Garante que save não é chamado
     }
 
     @Test
-    @DisplayName("Deve atualizar apenas o título da tarefa e manter os outros campos")
-    void updateTask_shouldUpdateOnlyTitle_whenOnlyTitleIsProvided() {
-        // Cenário
-        var existingTask = setupIncompleteTaskFound(1L);
-        // Apenas o título é fornecido na atualização
-        var updateData = new TaskUpdateDTO("Título Novo", null, null);
+    @DisplayName("updateTask should throw TaskNotFoundException when ID does not exist")
+    void updateTask_shouldThrowTaskNotFoundException_whenIdDoesNotExist() {
+        // Arrange
+        long nonExistentId = 99L;
+        var updateDTO = new TaskUpdateDTO("New Title", "New Description", true);
 
-        // Execução
-        TaskResponseDTO result = taskService.updateTask(1L, updateData);
+        when(taskRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // Verificação
-        assertNotNull(result);
-        assertEquals("Título Novo", result.title(), "O título deveria ter sido atualizado.");
-        assertEquals("Descrição Original", result.description(), "A descrição não deveria ter sido alterada.");
-        assertFalse(result.completed(), "O status de conclusão não deveria ter sido alterado.");
-        assertEquals(existingTask.getCreationDate(), result.creationDate(), "A data de criação não deveria ter sido alterada.");
+        // Act & Assert
+        var exception = assertThrows(TaskNotFoundException.class, () -> {
+            taskService.updateTask(nonExistentId, updateDTO);
+        });
 
-        verify(taskRepository, times(1)).findById(1L);
+        assertEquals("Task not found with ID: " + nonExistentId, exception.getMessage());
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao tentar atualizar uma tarefa inexistente")
-    void updateTask_shouldThrowException_whenIdNotFound() {
-        // Cenário
-        var updateData = new TaskUpdateDTO("Qualquer Título", null, null);
-        when(taskRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("updateTask should throw IllegalArgumentException when ID is null")
+    void updateTask_shouldThrowIllegalArgumentException_whenIdIsNull() {
+        // Arrange
+        var updateDTO = new TaskUpdateDTO("New Title", "New Description", true);
 
-        // Execução e Verificação
-        assertThrows(EntityNotFoundException.class, () -> taskService.updateTask(99L, updateData));
-        verify(taskRepository, times(1)).findById(99L);
+        // Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.updateTask(null, updateDTO);
+        });
+
+        assertEquals("Task ID cannot be null.", exception.getMessage());
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
     @Test
-    @DisplayName("Deve deletar a tarefa quando o ID for válido")
-    void deleteTask_shouldDeleteTask_whenIdIsValid() {
-        // Cenário
-        var existingTask = setupIncompleteTaskFound(1L);
+    @DisplayName("updateTask should throw IllegalArgumentException when DTO is null")
+    void updateTask_shouldThrowIllegalArgumentException_whenDtoIsNull() {
+        // Arrange
+        long taskId = 1L;
+
+        // Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.updateTask(taskId, null);
+        });
+
+        assertEquals("TaskUpdateDTO cannot be null.", exception.getMessage());
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("updateTask should propagate exceptions from the repository on findById")
+    void updateTask_shouldPropagateRepositoryExceptions() {
+        // Arrange
+        long taskId = 1L;
+        var updateDTO = new TaskUpdateDTO("New Title", "New Description", true);
+        String errorMessage = "Database find failed";
+
+        when(taskRepository.findById(taskId)).thenThrow(new RuntimeException(errorMessage));
+
+        // Act & Assert
+        var exception = assertThrows(RuntimeException.class, () -> {
+            taskService.updateTask(taskId, updateDTO);
+        });
+        assertEquals(errorMessage, exception.getMessage());
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    // --- Testes para o método deleteTask ---
+
+    @Test
+    @DisplayName("deleteTask should delete the task when ID exists")
+    void deleteTask_shouldDeleteTask_whenIdExists() {
+        // Arrange
+        long taskId = 1L;
+        var existingTask = new Task(taskId, "Task to delete", "Description", LocalDateTime.now(), false);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
         doNothing().when(taskRepository).delete(existingTask);
 
-        // Execução e Verificação
-        assertDoesNotThrow(() -> taskService.deleteTask(1L), "A deleção não deve lançar exceção para um ID válido.");
+        // Act
+        taskService.deleteTask(taskId);
 
-        // Verifica se os métodos corretos do repositório foram chamados
-        verify(taskRepository, times(1)).findById(1L);
+        // Assert
+        verify(taskRepository, times(1)).findById(taskId);
         verify(taskRepository, times(1)).delete(existingTask);
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao tentar deletar uma tarefa inexistente")
-    void deleteTask_shouldThrowException_whenIdNotFound() {
-        // Cenário
-        when(taskRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("deleteTask should throw TaskNotFoundException when ID does not exist")
+    void deleteTask_shouldThrowTaskNotFoundException_whenIdDoesNotExist() {
+        // Arrange
+        long nonExistentId = 99L;
+        when(taskRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // Execução e Verificação
-        assertThrows(EntityNotFoundException.class, () -> taskService.deleteTask(99L));
+        // Act & Assert
+        var exception = assertThrows(TaskNotFoundException.class, () -> {
+            taskService.deleteTask(nonExistentId);
+        });
+
+        assertEquals("Task not found with ID: " + nonExistentId, exception.getMessage());
+        verify(taskRepository, times(1)).findById(nonExistentId);
         verify(taskRepository, never()).delete(any(Task.class));
     }
 
     @Test
-    @DisplayName("Deve marcar a tarefa como concluída quando o ID for válido")
-    void concludeTask_shouldMarkTaskAsCompleted_whenIdIsValid() {
-        // Cenário
-        setupIncompleteTaskFound(1L);
+    @DisplayName("deleteTask should throw IllegalArgumentException when ID is null")
+    void deleteTask_shouldThrowIllegalArgumentException_whenIdIsNull() {
+        // Arrange, Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.deleteTask(null);
+        });
 
-        // Execução
-        TaskResponseDTO result = taskService.concludeTask(1L);
+        assertEquals("Task ID cannot be null.", exception.getMessage());
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).delete(any(Task.class));
+    }
 
-        // Verificação
+    @Test
+    @DisplayName("deleteTask should propagate exceptions from the repository")
+    void deleteTask_shouldPropagateRepositoryExceptions() {
+        // Arrange
+        long taskId = 1L;
+        var existingTask = new Task(taskId, "Task to delete", "Description", LocalDateTime.now(), false);
+        String errorMessage = "Database delete failed";
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        doThrow(new RuntimeException(errorMessage)).when(taskRepository).delete(existingTask);
+
+        // Act & Assert
+        var exception = assertThrows(RuntimeException.class, () -> {
+            taskService.deleteTask(taskId);
+        });
+        assertEquals(errorMessage, exception.getMessage());
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, times(1)).delete(existingTask);
+    }
+
+    // --- Testes para o método concludeTask ---
+
+    @Test
+    @DisplayName("concludeTask should mark task as completed and return it")
+    void concludeTask_shouldMarkTaskAsCompleted_whenIdExists() {
+        // Arrange
+        long taskId = 1L;
+        var existingTask = new Task(taskId, "Task to conclude", "Description", LocalDateTime.now(), false);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+
+        // Act
+        TaskResponseDTO result = taskService.concludeTask(taskId);
+
+        // Assert
         assertNotNull(result);
-        assertTrue(result.completed(), "A tarefa deveria estar marcada como concluída.");
-        assertEquals(1L, result.id());
-        verify(taskRepository, times(1)).findById(1L);
+        assertTrue(result.completed());
+
+        // Verifica se o estado do objeto foi alterado, já que save() não é chamado
+        assertTrue(existingTask.getCompleted());
+        verify(taskRepository, never()).save(any(Task.class)); // Garante que save não é chamado
     }
 
     @Test
-    @DisplayName("Deve manter a tarefa como concluída se ela já estiver concluída")
-    void concludeTask_shouldRemainCompleted_whenTaskIsAlreadyConcluded() {
-        // Cenário
-        setupCompletedTaskFound(1L);
+    @DisplayName("concludeTask should throw TaskNotFoundException when ID does not exist")
+    void concludeTask_shouldThrowTaskNotFoundException_whenIdDoesNotExist() {
+        // Arrange
+        long nonExistentId = 99L;
+        when(taskRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // Execução
-        TaskResponseDTO result = taskService.concludeTask(1L);
+        // Act & Assert
+        var exception = assertThrows(TaskNotFoundException.class, () -> {
+            taskService.concludeTask(nonExistentId);
+        });
 
-        // Verificação
-        assertTrue(result.completed(), "A tarefa deveria permanecer concluída.");
-        verify(taskRepository, times(1)).findById(1L);
+        assertEquals("Task not found with ID: " + nonExistentId, exception.getMessage());
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao tentar concluir uma tarefa inexistente")
-    void concludeTask_shouldThrowException_whenIdNotFound() {
-        // Cenário
-        when(taskRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("concludeTask should throw IllegalArgumentException when ID is null")
+    void concludeTask_shouldThrowIllegalArgumentException_whenIdIsNull() {
+        // Arrange, Act & Assert
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.concludeTask(null);
+        });
 
-        // Execução e Verificação
-        assertThrows(EntityNotFoundException.class, () -> taskService.concludeTask(99L));
-        verify(taskRepository, times(1)).findById(99L);
+        assertEquals("Task ID cannot be null.", exception.getMessage());
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
-    // Métodos auxiliares para encapsular a criação de mocks
+    @Test
+    @DisplayName("concludeTask should propagate exceptions from the repository")
+    void concludeTask_shouldPropagateRepositoryExceptions() {
+        // Arrange
+        long taskId = 1L;
+        var existingTask = new Task(taskId, "Task to conclude", "Description", LocalDateTime.now(), false);
+        String errorMessage = "Database find failed";
 
-    private Task setupIncompleteTaskFound(Long id) {
-        var task = new Task(id, "Título Antigo", "Descrição Original", LocalDateTime.now().minusDays(1), false);
-        when(taskRepository.findById(id)).thenReturn(Optional.of(task));
-        return task;
+        when(taskRepository.findById(taskId)).thenThrow(new RuntimeException(errorMessage));
+
+        // Act & Assert
+        var exception = assertThrows(RuntimeException.class, () -> {
+            taskService.concludeTask(taskId);
+        });
+        assertEquals(errorMessage, exception.getMessage());
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
     }
-
-    private Task setupCompletedTaskFound(Long id) {
-        var task = new Task(id, "Tarefa já concluída", "Descrição", LocalDateTime.now(), true);
-        when(taskRepository.findById(id)).thenReturn(Optional.of(task));
-        return task;
-    }
-
 }
