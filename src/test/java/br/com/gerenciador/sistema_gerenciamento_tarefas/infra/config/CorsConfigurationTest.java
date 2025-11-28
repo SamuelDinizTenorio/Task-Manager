@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +37,7 @@ class CorsConfigurationTest {
 
     @Test
     @DisplayName("Deve retornar headers de CORS para uma origem permitida")
+    @WithMockUser
     void whenRequestFromAllowedOrigin_thenReturnsCorrectCorsHeaders() throws Exception {
         String allowedOrigin = "http://allowed-origin.com";
 
@@ -48,6 +50,7 @@ class CorsConfigurationTest {
 
     @Test
     @DisplayName("Não deve retornar header 'Access-Control-Allow-Origin' para uma origem não permitida")
+    @WithMockUser
     void whenRequestFromDisallowedOrigin_thenDoesNotReturnCorsHeader() throws Exception {
         String disallowedOrigin = "http://disallowed-origin.com";
 
@@ -59,6 +62,7 @@ class CorsConfigurationTest {
 
     @Test
     @DisplayName("Deve responder corretamente a uma requisição de preflight (OPTIONS)")
+    @WithMockUser
     void whenPreflightRequestFromAllowedOrigin_thenReturnsCorrectCorsHeaders() throws Exception {
         String allowedOrigin = "http://allowed-origin.com";
 
